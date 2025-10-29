@@ -1,167 +1,432 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ternary Survey</title>
-  <script src="https://d3js.org/d3.v7.min.js"></script>
-  <style>
-    body {
-      font-family: "Inter", sans-serif;
-      background-color: #f7f8fa;
-      color: #222;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 40px;
-      margin: 0;
-    }
-    .survey-card {
-      background-color: #fff;
-      border-radius: 16px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-      padding: 30px;
-      text-align: center;
-      width: 400px;
-      margin-bottom: 2rem;
-    }
-    #chart-wrapper {
-      background: #fafafa;
-      border-radius: 12px;
-      padding: 10px;
-      box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.05);
-    }
-    svg {
-      cursor: crosshair;
-    }
-    button {
-      padding: 10px 20px;
-      border: none;
-      border-radius: 8px;
-      background: #007bff;
-      color: white;
-      cursor: pointer;
-      font-size: 1rem;
-    }
-    button:hover {
-      background: #005dc1;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ternary Plot Umfrage</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 40px;
+            font-size: 2.5em;
+        }
+        
+        .question-section {
+            margin-bottom: 50px;
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            border-left: 5px solid #667eea;
+        }
+        
+        .question-section h2 {
+            color: #444;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+        
+        .ternary-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        svg {
+            width: 100%;
+            height: auto;
+        }
+        
+        .triangle {
+            fill: #f0f0f0;
+            stroke: #333;
+            stroke-width: 2;
+        }
+        
+        .grid-line {
+            stroke: #ddd;
+            stroke-width: 1;
+        }
+        
+        .axis-label {
+            font-size: 16px;
+            font-weight: bold;
+            fill: #333;
+        }
+        
+        .point {
+            fill: #667eea;
+            stroke: white;
+            stroke-width: 2;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .point:hover {
+            fill: #764ba2;
+            r: 10;
+        }
+        
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            font-size: 14px;
+            z-index: 1000;
+        }
+        
+        .tooltip.visible {
+            opacity: 1;
+        }
+        
+        .submit-btn {
+            display: block;
+            width: 100%;
+            max-width: 300px;
+            margin: 30px auto;
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .submit-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .status-message {
+            text-align: center;
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        
+        .status-message.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-message.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .answer-display {
+            text-align: center;
+            margin-top: 15px;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            font-weight: bold;
+            color: #667eea;
+        }
+    </style>
 </head>
 <body>
-  <h1>Ternary Survey</h1>
+    <div class="container">
+        <h1>Ternary Plot Umfrage</h1>
+        
+        <div class="question-section">
+            <h2>Frage 1: Wie verteilen sich Ihre Prioritäten zwischen Kosten, Qualität und Zeit?</h2>
+            <div class="ternary-container">
+                <svg id="ternary1" viewBox="0 0 600 550"></svg>
+                <div class="tooltip" id="tooltip1"></div>
+            </div>
+            <div class="answer-display" id="answer1">Klicken Sie auf das Diagramm, um Ihre Antwort auszuwählen</div>
+        </div>
+        
+        <div class="question-section">
+            <h2>Frage 2: Wie ist Ihre bevorzugte Balance zwischen Innovation, Stabilität und Effizienz?</h2>
+            <div class="ternary-container">
+                <svg id="ternary2" viewBox="0 0 600 550"></svg>
+                <div class="tooltip" id="tooltip2"></div>
+            </div>
+            <div class="answer-display" id="answer2">Klicken Sie auf das Diagramm, um Ihre Antwort auszuwählen</div>
+        </div>
+        
+        <button class="submit-btn" id="submitBtn" disabled>Antworten einreichen</button>
+        <div class="status-message" id="statusMessage" style="display: none;"></div>
+    </div>
 
-  <div class="survey-card">
-    <h2>Question 1</h2>
-    <div id="chart-wrapper"><svg id="q1" width="350" height="350"></svg></div>
-  </div>
+    <script>
+        const answers = {
+            question1: null,
+            question2: null
+        };
 
-  <div class="survey-card">
-    <h2>Question 2</h2>
-    <div id="chart-wrapper"><svg id="q2" width="350" height="350"></svg></div>
-  </div>
-
-  <button id="export-btn">Download Results (CSV)</button>
-
- <script>
-const API_BASE = "https://digital-society-survey.onrender.com";
-
-// Generate or load session ID
-let sessionId = localStorage.getItem("sessionId");
-if (!sessionId) {
-  sessionId = "sess-" + Math.random().toString(36).substr(2, 9);
-  localStorage.setItem("sessionId", sessionId);
-}
-
-function drawTernary(qid) {
-  const svg = d3.select(`#${qid}`);
-  svg.selectAll("*").remove();
-  const width = +svg.attr("width");
-  const height = +svg.attr("height");
-  const margin = 30;
-
-  const points = [
-    [width / 2, margin],
-    [margin, height - margin],
-    [width - margin, height - margin],
-  ];
-
-  // Draw triangle
-  svg.append("polygon")
-    .attr("points", points.map(p => p.join(",")).join(" "))
-    .attr("stroke", "#333")
-    .attr("stroke-width", 2)
-    .attr("fill", "none");
-
-  // Draw labels
-  const labels = ["A", "B", "C"];
-  const offs = [[0, -10], [-10, 20], [10, 20]];
-  points.forEach((p, i) => {
-    svg.append("text")
-      .attr("x", p[0] + offs[i][0])
-      .attr("y", p[1] + offs[i][1])
-      .attr("text-anchor", "middle")
-      .attr("font-weight", "600")
-      .text(labels[i]);
-  });
-
-  // Draw existing user dot if any
-  const savedDot = svg.select(".user-dot");
-  if (!savedDot.empty()) savedDot.remove();
-
-  // Click handler
-  svg.on("click", function (event) {
-    const [x, y] = d3.pointer(event);
-    const bary = barycentric(x, y, points);
-    if (bary) {
-      sendVote(qid, bary);
-      showUserDot(svg, x, y);
-    }
-  });
-}
-
-// Convert click coordinates to barycentric coordinates
-function barycentric(x, y, [A, B, C]) {
-  const detT = (B[1] - C[1]) * (A[0] - C[0]) + (C[0] - B[0]) * (A[1] - C[1]);
-  const a = ((B[1] - C[1]) * (x - C[0]) + (C[0] - B[0]) * (y - C[1])) / detT;
-  const b = ((C[1] - A[1]) * (x - C[0]) + (A[0] - C[0]) * (y - C[1])) / detT;
-  const c = 1 - a - b;
-  if (a >= 0 && b >= 0 && c >= 0) return { a, b, c };
-  return null;
-}
-
-// Show the user’s dot on the triangle
-function showUserDot(svg, x, y) {
-  // Remove previous dot if exists
-  svg.selectAll(".user-dot").remove();
-  svg.append("circle")
-    .attr("class", "user-dot")
-    .attr("cx", x)
-    .attr("cy", y)
-    .attr("r", 6)
-    .attr("fill", "#ff5722") // distinct color for user
-    .attr("opacity", 0.8);
-}
-
-// Send the vote to the backend
-async function sendVote(question, { a, b, c }) {
-  const timestamp = new Date().toISOString();
-  await fetch(`${API_BASE}/vote`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ question, a, b, c, session: sessionId, timestamp }),
-  });
-}
-
-// CSV export button
-document.getElementById("export-btn").addEventListener("click", () => {
-  window.location.href = `${API_BASE}/export`;
-});
-
-// Initialize both triangles
-drawTernary("q1");
-drawTernary("q2");
-</script>
-
+        function createTernaryPlot(svgId, tooltipId, labels, questionKey) {
+            const svg = d3.select(`#${svgId}`);
+            const tooltip = d3.select(`#${tooltipId}`);
+            const answerDisplay = d3.select(`#answer${questionKey.slice(-1)}`);
+            
+            const width = 600;
+            const height = 550;
+            const size = 400;
+            const margin = 100;
+            
+            const h = size * Math.sqrt(3) / 2;
+            
+            const points = {
+                top: [width / 2, margin],
+                left: [width / 2 - size / 2, margin + h],
+                right: [width / 2 + size / 2, margin + h]
+            };
+            
+            svg.append('polygon')
+                .attr('class', 'triangle')
+                .attr('points', `${points.top[0]},${points.top[1]} ${points.left[0]},${points.left[1]} ${points.right[0]},${points.right[1]}`);
+            
+            for (let i = 1; i <= 9; i++) {
+                const ratio = i / 10;
+                
+                const p1 = [
+                    points.left[0] + (points.right[0] - points.left[0]) * ratio,
+                    points.left[1]
+                ];
+                const p2 = [
+                    points.top[0] + (points.right[0] - points.top[0]) * ratio,
+                    points.top[1] + (points.right[1] - points.top[1]) * ratio
+                ];
+                svg.append('line')
+                    .attr('class', 'grid-line')
+                    .attr('x1', p1[0]).attr('y1', p1[1])
+                    .attr('x2', p2[0]).attr('y2', p2[1]);
+                
+                const p3 = [
+                    points.left[0] + (points.top[0] - points.left[0]) * ratio,
+                    points.left[1] + (points.top[1] - points.left[1]) * ratio
+                ];
+                const p4 = [
+                    points.right[0] + (points.top[0] - points.right[0]) * ratio,
+                    points.right[1] + (points.top[1] - points.right[1]) * ratio
+                ];
+                svg.append('line')
+                    .attr('class', 'grid-line')
+                    .attr('x1', p3[0]).attr('y1', p3[1])
+                    .attr('x2', p4[0]).attr('y2', p4[1]);
+                
+                const p5 = [
+                    points.top[0] + (points.left[0] - points.top[0]) * ratio,
+                    points.top[1] + (points.left[1] - points.top[1]) * ratio
+                ];
+                const p6 = [
+                    points.right[0] + (points.left[0] - points.right[0]) * ratio,
+                    points.right[1]
+                ];
+                svg.append('line')
+                    .attr('class', 'grid-line')
+                    .attr('x1', p5[0]).attr('y1', p5[1])
+                    .attr('x2', p6[0]).attr('y2', p6[1]);
+            }
+            
+            svg.append('text')
+                .attr('class', 'axis-label')
+                .attr('x', points.top[0])
+                .attr('y', points.top[1] - 20)
+                .attr('text-anchor', 'middle')
+                .text(labels[0]);
+            
+            svg.append('text')
+                .attr('class', 'axis-label')
+                .attr('x', points.left[0] - 60)
+                .attr('y', points.left[1] + 10)
+                .attr('text-anchor', 'middle')
+                .text(labels[1]);
+            
+            svg.append('text')
+                .attr('class', 'axis-label')
+                .attr('x', points.right[0] + 60)
+                .attr('y', points.right[1] + 10)
+                .attr('text-anchor', 'middle')
+                .text(labels[2]);
+            
+            const pointCircle = svg.append('circle')
+                .attr('class', 'point')
+                .attr('r', 0)
+                .style('display', 'none');
+            
+            function barycentricToCartesian(a, b, c) {
+                const x = points.left[0] * a + points.right[0] * b + points.top[0] * c;
+                const y = points.left[1] * a + points.right[1] * b + points.top[1] * c;
+                return [x, y];
+            }
+            
+            function cartesianToBarycentric(x, y) {
+                const v0 = [points.right[0] - points.left[0], points.right[1] - points.left[1]];
+                const v1 = [points.top[0] - points.left[0], points.top[1] - points.left[1]];
+                const v2 = [x - points.left[0], y - points.left[1]];
+                
+                const d00 = v0[0] * v0[0] + v0[1] * v0[1];
+                const d01 = v0[0] * v1[0] + v0[1] * v1[1];
+                const d11 = v1[0] * v1[0] + v1[1] * v1[1];
+                const d20 = v2[0] * v0[0] + v2[1] * v0[1];
+                const d21 = v2[0] * v1[0] + v2[1] * v1[1];
+                
+                const denom = d00 * d11 - d01 * d01;
+                const v = (d11 * d20 - d01 * d21) / denom;
+                const w = (d00 * d21 - d01 * d20) / denom;
+                const u = 1 - v - w;
+                
+                return [u, v, w];
+            }
+            
+            function isInsideTriangle(a, b, c) {
+                return a >= 0 && b >= 0 && c >= 0 && Math.abs(a + b + c - 1) < 0.01;
+            }
+            
+            svg.on('mousemove', function(event) {
+                const [mx, my] = d3.pointer(event);
+                let [a, b, c] = cartesianToBarycentric(mx, my);
+                
+                if (isInsideTriangle(a, b, c)) {
+                    const sum = a + b + c;
+                    a /= sum;
+                    b /= sum;
+                    c /= sum;
+                    
+                    const [cx, cy] = barycentricToCartesian(a, b, c);
+                    
+                    tooltip
+                        .style('left', (event.pageX + 15) + 'px')
+                        .style('top', (event.pageY - 30) + 'px')
+                        .html(`
+                            ${labels[1]}: ${(a * 100).toFixed(1)}%<br>
+                            ${labels[2]}: ${(b * 100).toFixed(1)}%<br>
+                            ${labels[0]}: ${(c * 100).toFixed(1)}%
+                        `)
+                        .classed('visible', true);
+                } else {
+                    tooltip.classed('visible', false);
+                }
+            });
+            
+            svg.on('mouseleave', function() {
+                tooltip.classed('visible', false);
+            });
+            
+            svg.on('click', function(event) {
+                const [mx, my] = d3.pointer(event);
+                let [a, b, c] = cartesianToBarycentric(mx, my);
+                
+                if (isInsideTriangle(a, b, c)) {
+                    const sum = a + b + c;
+                    a /= sum;
+                    b /= sum;
+                    c /= sum;
+                    
+                    const [cx, cy] = barycentricToCartesian(a, b, c);
+                    
+                    pointCircle
+                        .attr('cx', cx)
+                        .attr('cy', cy)
+                        .attr('r', 8)
+                        .style('display', 'block');
+                    
+                    answers[questionKey] = {
+                        [labels[1]]: parseFloat((a * 100).toFixed(1)),
+                        [labels[2]]: parseFloat((b * 100).toFixed(1)),
+                        [labels[0]]: parseFloat((c * 100).toFixed(1))
+                    };
+                    
+                    answerDisplay.html(`
+                        ${labels[1]}: ${(a * 100).toFixed(1)}% | 
+                        ${labels[2]}: ${(b * 100).toFixed(1)}% | 
+                        ${labels[0]}: ${(c * 100).toFixed(1)}%
+                    `);
+                    
+                    checkSubmitButton();
+                }
+            });
+        }
+        
+        function checkSubmitButton() {
+            const btn = document.getElementById('submitBtn');
+            if (answers.question1 && answers.question2) {
+                btn.disabled = false;
+            }
+        }
+        
+        createTernaryPlot('ternary1', 'tooltip1', ['Zeit', 'Kosten', 'Qualität'], 'question1');
+        createTernaryPlot('ternary2', 'tooltip2', ['Effizienz', 'Innovation', 'Stabilität'], 'question2');
+        
+        document.getElementById('submitBtn').addEventListener('click', async function() {
+            const btn = this;
+            const statusMessage = document.getElementById('statusMessage');
+            
+            btn.disabled = true;
+            statusMessage.style.display = 'none';
+            
+            try {
+                const response = await fetch('https://digital-society-survey.onrender.com/submit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(answers)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    statusMessage.textContent = 'Antworten erfolgreich eingereicht!';
+                    statusMessage.className = 'status-message success';
+                    statusMessage.style.display = 'block';
+                    
+                    setTimeout(() => {
+                        location.reload();
+                    }, 2000);
+                } else {
+                    throw new Error(result.error || 'Fehler beim Einreichen');
+                }
+            } catch (error) {
+                statusMessage.textContent = 'Fehler: ' + error.message;
+                statusMessage.className = 'status-message error';
+                statusMessage.style.display = 'block';
+                btn.disabled = false;
+            }
+        });
+    </script>
 </body>
 </html>
