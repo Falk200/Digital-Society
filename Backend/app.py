@@ -1,8 +1,8 @@
 from flask import Flask, request, jsonify, Response
 import json, os, csv, io
+from datetime import datetime
 
 app = Flask(__name__)
-
 DATA_FILE = "results.json"
 
 def load_results():
@@ -23,10 +23,21 @@ def vote():
     data = request.get_json()
     question = data.get("question")
     a, b, c = data.get("a"), data.get("b"), data.get("c")
-    if not all(isinstance(v, (int, float)) for v in [a, b, c]):
+    session_id = data.get("session")
+    timestamp = data.get("timestamp")
+
+    if not all(isinstance(v, (int, float)) for v in [a, b, c]) or not session_id or not timestamp:
         return jsonify(success=False, error="Invalid data"), 400
+
     results = load_results()
-    results.append({"question": question, "a": a, "b": b, "c": c})
+    results.append({
+        "question": question,
+        "a": a,
+        "b": b,
+        "c": c,
+        "session": session_id,
+        "timestamp": timestamp
+    })
     save_results(results)
     return jsonify(success=True)
 
@@ -34,7 +45,8 @@ def vote():
 def export_csv():
     results = load_results()
     output = io.StringIO()
-    writer = csv.DictWriter(output, fieldnames=["question", "a", "b", "c"])
+    fieldnames = ["question", "a", "b", "c", "session", "timestamp"]
+    writer = csv.DictWriter(output, fieldnames=fieldnames)
     writer.writeheader()
     writer.writerows(results)
     return Response(
