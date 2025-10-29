@@ -1,1 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simple Survey with Ternary Plot</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      margin-top: 40px;
+      background: #fafafa;
+    }
+    button {
+      margin: 5px;
+      padding: 10px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    svg {
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Vote in the Survey</h1>
 
+  <button onclick="vote('A')">Option A</button>
+  <button onclick="vote('B')">Option B</button>
+  <button onclick="vote('C')">Option C</button>
+
+  <h2>Results:</h2>
+  <div id="results"></div>
+
+  <svg id="ternary" width="400" height="400"></svg>
+
+  <script>
+    // ⚙️ CHANGE THIS to your actual Render / Flask backend URL
+    const API_BASE = "https://digital-society-survey.onrender.com";
+
+    async function vote(option) {
+      await fetch(`${API_BASE}/vote`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ choice: option }),
+      });
+      loadResults();
+    }
+
+    async function loadResults() {
+      let response = await fetch(`${API_BASE}/results`);
+      let data = await response.json();
+      updateResults(data);
+      drawTernary(data);
+    }
+
+    function updateResults(data) {
+      document.getElementById("results").innerText =
+        `A: ${data.A} | B: ${data.B} | C: ${data.C}`;
+    }
+
+    function drawTernary(data) {
+      const svg = d3.select("#ternary");
+      svg.selectAll("*").remove(); // clear old drawing
+
+      const width = +svg.attr("width");
+      const height = +svg.attr("height");
+      const margin = 40;
+
+      const A = data.A, B = data.B, C = data.C;
+      const total = A + B + C || 1;
+      const a = A / total, b = B / total, c = C / total;
+
+      const points = [
+        [width / 2, margin],                // A (top)
+        [margin, height - margin],          // B (bottom left)
+        [width - margin, height - margin],  // C (bottom right)
+      ];
+
+      // Draw triangle
+      svg.append("polygon")
+        .attr("points", points.map(p => p.join(",")).join(" "))
+        .attr("stroke", "#333")
+        .attr("stroke-width", 2)
+        .attr("fill", "none");
+
+      // Compute barycentric coordinates
+      const x = a * points[0][0] + b * points[1][0] + c * points[2][0];
+      const y = a * points[0][1] + b * points[1][1] + c * points[2][1];
+
+      // Draw point
+      svg.append("circle")
+        .attr("cx", x)
+        .attr("cy", y)
+        .attr("r", 8)
+        .attr("fill", "steelblue");
+
+      // Labels
+      svg.append("text")
+        .attr("x", points[0][0])
+        .attr("y", points[0][1] - 10)
+        .attr("text-anchor", "middle")
+        .text("A");
+      svg.append("text")
+        .attr("x", points[1][0] - 10)
+        .attr("y", points[1][1] + 15)
+        .attr("text-anchor", "end")
+        .text("B");
+      svg.append("text")
+        .attr("x", points[2][0] + 10)
+        .attr("y", points[2][1] + 15)
+        .attr("text-anchor", "start")
+        .text("C");
+    }
+
+    loadResults();
+  </script>
+</body>
+</html>
