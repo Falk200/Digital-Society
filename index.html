@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ternary Plot Umfrage</title>
+    <title>Environmentail Values Survey</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
     <style>
         * {
@@ -182,29 +182,29 @@
 </head>
 <body>
     <div class="container">
-        <h1>Ternary Plot Umfrage</h1>
+        <h1>Environmental Values Survey</h1>
         
         <div class="question-section">
-            <h2>Frage 1: Wie verteilen sich Ihre Prioritäten zwischen Kosten, Qualität und Zeit?</h2>
+            <h2>Question 1: In 2025, what do you think is the relative importance of these values?</h2>
             <div class="ternary-container">
                 <svg id="ternary1" viewBox="0 0 600 550"></svg>
                 <div class="tooltip" id="tooltip1"></div>
             </div>
-            <div class="answer-display" id="answer1">Klicken Sie auf das Diagramm, um Ihre Antwort auszuwählen</div>
+            <div class="answer-display" id="answer1">Click the diagram to select your answer</div>
         </div>
         
         <div class="question-section">
-            <h2>Frage 2: Wie ist Ihre bevorzugte Balance zwischen Innovation, Stabilität und Effizienz?</h2>
+            <h2>Question 2: What do you think the relative importance of these values will be in 2075?</h2>
             <div class="ternary-container">
                 <svg id="ternary2" viewBox="0 0 600 550"></svg>
                 <div class="tooltip" id="tooltip2"></div>
             </div>
-            <div class="answer-display" id="answer2">Klicken Sie auf das Diagramm, um Ihre Antwort auszuwählen</div>
+            <div class="answer-display" id="answer2">Click the diagram to select your answer</div>
         </div>
         
         <div class="button-container">
-            <button class="submit-btn" id="submitBtn" disabled>Antworten einreichen</button>
-            <button class="export-btn" id="exportBtn">Daten exportieren (CSV)</button>
+            <button class="submit-btn" id="submitBtn" disabled>Submit your answers</button>
+            <button class="export-btn" id="exportBtn">Export Data (CSV)</button>
         </div>
         <div class="status-message" id="statusMessage" style="display: none;"></div>
     </div>
@@ -414,8 +414,8 @@
             }
         }
         
-        createTernaryPlot('ternary1', 'tooltip1', ['Zeit', 'Kosten', 'Qualität'], 'question1');
-        createTernaryPlot('ternary2', 'tooltip2', ['Effizienz', 'Innovation', 'Stabilität'], 'question2');
+        createTernaryPlot('ternary1', 'tooltip1', ['Sustainability', 'Equality', 'Technological Progress'], 'question1');
+        createTernaryPlot('ternary2', 'tooltip2', ['Sustainability', 'Equality', 'Technological Progress'], 'question2');
         
         document.getElementById('submitBtn').addEventListener('click', async function() {
             const btn = this;
@@ -436,7 +436,7 @@
                 const result = await response.json();
                 
                 if (response.ok) {
-                    statusMessage.textContent = 'Antworten erfolgreich eingereicht!';
+                    statusMessage.textContent = 'Answers submitted succesfully!';
                     statusMessage.className = 'status-message success';
                     statusMessage.style.display = 'block';
                     
@@ -460,7 +460,7 @@
             const statusMessage = document.getElementById('statusMessage');
             
             btn.disabled = true;
-            btn.textContent = 'Exportiere...';
+            btn.textContent = 'Exporting...';
             statusMessage.style.display = 'none';
             
             try {
@@ -469,7 +469,7 @@
                 });
                 
                 if (!response.ok) {
-                    throw new Error('Export fehlgeschlagen');
+                    throw new Error('Export failed');
                 }
                 
                 // Get the CSV content
@@ -485,7 +485,7 @@
                 window.URL.revokeObjectURL(url);
                 document.body.removeChild(a);
                 
-                statusMessage.textContent = 'CSV-Datei erfolgreich heruntergeladen!';
+                statusMessage.textContent = 'CSV-Datei downloaded succesfully!';
                 statusMessage.className = 'status-message success';
                 statusMessage.style.display = 'block';
                 
@@ -494,12 +494,12 @@
                 }, 3000);
                 
             } catch (error) {
-                statusMessage.textContent = 'Fehler beim Export: ' + error.message;
+                statusMessage.textContent = 'Exporting error: ' + error.message;
                 statusMessage.className = 'status-message error';
                 statusMessage.style.display = 'block';
             } finally {
                 btn.disabled = false;
-                btn.textContent = 'Daten exportieren (CSV)';
+                btn.textContent = 'Export Data (CSV)';
             }
         });
     </script>
