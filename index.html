@@ -63,76 +63,105 @@
 
   <button id="export-btn">Download Results (CSV)</button>
 
-  <script>
-    const API_BASE = "https://digital-society-survey.onrender.com";
+ <script>
+const API_BASE = "https://digital-society-survey.onrender.com";
 
-    function drawTernary(qid) {
-      const svg = d3.select(`#${qid}`);
-      svg.selectAll("*").remove();
-      const width = +svg.attr("width");
-      const height = +svg.attr("height");
-      const margin = 30;
-      const points = [
-        [width / 2, margin],
-        [margin, height - margin],
-        [width - margin, height - margin],
-      ];
+// Generate or load session ID
+let sessionId = localStorage.getItem("sessionId");
+if (!sessionId) {
+  sessionId = "sess-" + Math.random().toString(36).substr(2, 9);
+  localStorage.setItem("sessionId", sessionId);
+}
 
-      svg.append("polygon")
-        .attr("points", points.map(p => p.join(",")).join(" "))
-        .attr("stroke", "#333")
-        .attr("stroke-width", 2)
-        .attr("fill", "none");
+function drawTernary(qid) {
+  const svg = d3.select(`#${qid}`);
+  svg.selectAll("*").remove();
+  const width = +svg.attr("width");
+  const height = +svg.attr("height");
+  const margin = 30;
 
-      const labels = ["A", "B", "C"];
-      const offs = [[0, -10], [-10, 20], [10, 20]];
-      points.forEach((p, i) => {
-        svg.append("text")
-          .attr("x", p[0] + offs[i][0])
-          .attr("y", p[1] + offs[i][1])
-          .attr("text-anchor", "middle")
-          .attr("font-weight", "600")
-          .text(labels[i]);
-      });
+  const points = [
+    [width / 2, margin],
+    [margin, height - margin],
+    [width - margin, height - margin],
+  ];
 
-      svg.on("click", function (event) {
-        const [x, y] = d3.pointer(event);
-        const bary = barycentric(x, y, points);
-        if (bary) {
-          sendVote(qid, bary);
-          svg.append("circle")
-            .attr("cx", x)
-            .attr("cy", y)
-            .attr("r", 6)
-            .attr("fill", "#007bff")
-            .attr("opacity", 0.7);
-        }
-      });
+  // Draw triangle
+  svg.append("polygon")
+    .attr("points", points.map(p => p.join(",")).join(" "))
+    .attr("stroke", "#333")
+    .attr("stroke-width", 2)
+    .attr("fill", "none");
+
+  // Draw labels
+  const labels = ["A", "B", "C"];
+  const offs = [[0, -10], [-10, 20], [10, 20]];
+  points.forEach((p, i) => {
+    svg.append("text")
+      .attr("x", p[0] + offs[i][0])
+      .attr("y", p[1] + offs[i][1])
+      .attr("text-anchor", "middle")
+      .attr("font-weight", "600")
+      .text(labels[i]);
+  });
+
+  // Draw existing user dot if any
+  const savedDot = svg.select(".user-dot");
+  if (!savedDot.empty()) savedDot.remove();
+
+  // Click handler
+  svg.on("click", function (event) {
+    const [x, y] = d3.pointer(event);
+    const bary = barycentric(x, y, points);
+    if (bary) {
+      sendVote(qid, bary);
+      showUserDot(svg, x, y);
     }
+  });
+}
 
-    function barycentric(x, y, [A, B, C]) {
-      const detT = (B[1] - C[1]) * (A[0] - C[0]) + (C[0] - B[0]) * (A[1] - C[1]);
-      const a = ((B[1] - C[1]) * (x - C[0]) + (C[0] - B[0]) * (y - C[1])) / detT;
-      const b = ((C[1] - A[1]) * (x - C[0]) + (A[0] - C[0]) * (y - C[1])) / detT;
-      const c = 1 - a - b;
-      if (a >= 0 && b >= 0 && c >= 0) return { a, b, c };
-      return null;
-    }
+// Convert click coordinates to barycentric coordinates
+function barycentric(x, y, [A, B, C]) {
+  const detT = (B[1] - C[1]) * (A[0] - C[0]) + (C[0] - B[0]) * (A[1] - C[1]);
+  const a = ((B[1] - C[1]) * (x - C[0]) + (C[0] - B[0]) * (y - C[1])) / detT;
+  const b = ((C[1] - A[1]) * (x - C[0]) + (A[0] - C[0]) * (y - C[1])) / detT;
+  const c = 1 - a - b;
+  if (a >= 0 && b >= 0 && c >= 0) return { a, b, c };
+  return null;
+}
 
-    async function sendVote(question, { a, b, c }) {
-      await fetch(`${API_BASE}/vote`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question, a, b, c }),
-      });
-    }
+// Show the user’s dot on the triangle
+function showUserDot(svg, x, y) {
+  // Remove previous dot if exists
+  svg.selectAll(".user-dot").remove();
+  svg.append("circle")
+    .attr("class", "user-dot")
+    .attr("cx", x)
+    .attr("cy", y)
+    .attr("r", 6)
+    .attr("fill", "#ff5722") // distinct color for user
+    .attr("opacity", 0.8);
+}
 
-    document.getElementById("export-btn").addEventListener("click", () => {
-      window.location.href = `${API_BASE}/export`;
-    });
+// Send the vote to the backend
+async function sendVote(question, { a, b, c }) {
+  const timestamp = new Date().toISOString();
+  await fetch(`${API_BASE}/vote`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question, a, b, c, session: sessionId, timestamp }),
+  });
+}
 
-    drawTernary("q1");
-    drawTernary("q2");
-  </script>
+// CSV export button
+document.getElementById("export-btn").addEventListener("click", () => {
+  window.location.href = `${API_BASE}/export`;
+});
+
+// Initialize both triangles
+drawTernary("q1");
+drawTernary("q2");
+</script>
+
 </body>
 </html>
