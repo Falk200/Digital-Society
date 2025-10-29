@@ -1,63 +1,113 @@
-from flask import Flask, request, jsonify, Response
-import json, os, csv, io
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+import csv
+import os
 from datetime import datetime
+import uuid
 
 app = Flask(__name__)
-DATA_FILE = "results.json"
+CORS(app)  # Erlaubt Cross-Origin Requests vom Frontend
 
-def load_results():
-    if os.path.exists(DATA_FILE):
-        try:
-            with open(DATA_FILE, "r") as f:
-                return json.load(f)
-        except json.JSONDecodeError:
-            pass
-    return []
+# CSV-Dateiname
+CSV_FILE = 'survey_responses.csv'
 
-def save_results(data):
-    with open(DATA_FILE, "w") as f:
-        json.dump(data, f, indent=2)
+# CSV-Datei initialisieren, falls sie nicht existiert
+def init_csv():
+    if not os.path.exists(CSV_FILE):
+        with open(CSV_FILE, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerow([
+                'timestamp',
+                'session_id',
+                'q1_kosten',
+                'q1_qualitaet',
+                'q1_zeit',
+                'q2_innovation',
+                'q2_stabilitaet',
+                'q2_effizienz'
+            ])
 
-@app.route("/vote", methods=["POST"])
-def vote():
-    data = request.get_json()
-    question = data.get("question")
-    a, b, c = data.get("a"), data.get("b"), data.get("c")
-    session_id = data.get("session")
-    timestamp = data.get("timestamp")
+@app.route('/submit', methods=['POST'])
+def submit_response():
+    try:
+        data = request.json
+        
+        # Session-ID generieren
+        session_id = str(uuid.uuid4())
+        
+        # Timestamp
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+        # Daten extrahieren
+        q1 = data.get('question1', {})
+        q2 = data.get('question2', {})
+        
+        # In CSV schreiben
+        with open(CSV_FILE, 'a', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerow([
+                timestamp,
+                session_id,
+                q1.get('Kosten', 0),
+                q1.get('Qualität', 0),
+                q1.get('Zeit', 0),
+                q2.get('Innovation', 0),
+                q2.get('Stabilität', 0),
+                q2.get('Effizienz', 0)
+            ])
+        
+        return jsonify({
+            'success': True,
+            'session_id': session_id,
+            'message': 'Antwort erfolgreich gespeichert'
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
-    if not all(isinstance(v, (int, float)) for v in [a, b, c]) or not session_id or not timestamp:
-        return jsonify(success=False, error="Invalid data"), 400
+@app.route('/export', methods=['GET'])
+def export_data():
+    """Endpunkt zum Abrufen aller gespeicherten Daten"""
+    try:
+        if not os.path.exists(CSV_FILE):
+            return jsonify({
+                'success': False,
+                'error': 'Keine Daten vorhanden'
+            }), 404
+        
+        with open(CSV_FILE, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            data = list(reader)
+        
+        return jsonify({
+            'success': True,
+            'count': len(data),
+            'data': data
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
-    results = load_results()
-    results.append({
-        "question": question,
-        "a": a,
-        "b": b,
-        "c": c,
-        "session": session_id,
-        "timestamp": timestamp
-    })
-    save_results(results)
-    return jsonify(success=True)
+@app.route('/health', methods=['GET'])
+def health_check():
+    """Health Check Endpunkt"""
+    return jsonify({'status': 'ok'}), 200
 
-@app.route("/export", methods=["GET"])
-def export_csv():
-    results = load_results()
-    output = io.StringIO()
-    fieldnames = ["question", "a", "b", "c", "session", "timestamp"]
-    writer = csv.DictWriter(output, fieldnames=fieldnames)
-    writer.writeheader()
-    writer.writerows(results)
-    return Response(
-        output.getvalue(),
-        mimetype="text/csv",
-        headers={"Content-Disposition": "attachment; filename=results.csv"},
-    )
-
-@app.route("/")
-def index():
-    return "Survey backend is running."
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+if __name__ == '__main__':
+    # CSV initialisieren
+    init_csv()
+    
+    print("Server startet auf http://localhost:5000")
+    print(f"Antworten werden in '{CSV_FILE}' gespeichert")
+    print("\nVerfügbare Endpunkte:")
+    print("  POST /submit   - Antworten einreichen")
+    print("  GET  /export   - Alle Daten abrufen")
+    print("  GET  /health   - Server Status")
+    
+    app.run(debug=True, port=5000)
