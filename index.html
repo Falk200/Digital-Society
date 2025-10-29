@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Interactive Survey</title>
+  <title>Two-Question Survey</title>
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <style>
     :root {
@@ -20,28 +20,29 @@
       background-color: var(--bg);
       color: var(--text);
       display: flex;
-      justify-content: center;
+      flex-direction: column;
       align-items: center;
-      height: 100vh;
-      margin: 0;
-    }
-
-    .container {
-      background-color: var(--card-bg);
-      border-radius: 16px;
-      box-shadow: 0 4px 20px var(--shadow);
       padding: 40px;
-      text-align: center;
-      width: 420px;
+      margin: 0;
     }
 
     h1 {
       font-size: 1.8rem;
-      margin-bottom: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .survey-card {
+      background-color: var(--card-bg);
+      border-radius: 16px;
+      box-shadow: 0 4px 20px var(--shadow);
+      padding: 30px;
+      text-align: center;
+      width: 400px;
+      margin-bottom: 2rem;
     }
 
     .buttons {
-      margin-bottom: 1.5rem;
+      margin-bottom: 1rem;
     }
 
     button {
@@ -61,17 +62,6 @@
       transform: translateY(-2px);
     }
 
-    h2 {
-      margin-top: 1rem;
-      font-size: 1.1rem;
-      color: #444;
-    }
-
-    #results {
-      margin-bottom: 10px;
-      font-weight: 500;
-    }
-
     #chart-wrapper {
       background: #fafafa;
       border-radius: 12px;
@@ -84,41 +74,53 @@
     }
 
     footer {
-      margin-top: 1rem;
+      margin-top: 2rem;
       font-size: 0.8rem;
       color: #777;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Vote in the Survey</h1>
+  <h1>Two-Question Survey</h1>
 
+  <!-- Question 1 -->
+  <div class="survey-card" id="q1-card">
+    <h2>Question 1: Which option do you prefer?</h2>
     <div class="buttons">
-      <button onclick="vote('A')">Option A</button>
-      <button onclick="vote('B')">Option B</button>
-      <button onclick="vote('C')">Option C</button>
+      <button onclick="vote('q1', 'A')">Option A</button>
+      <button onclick="vote('q1', 'B')">Option B</button>
+      <button onclick="vote('q1', 'C')">Option C</button>
     </div>
-
-    <h2>Results</h2>
-    <div id="results"></div>
-
+    <div id="results-q1"></div>
     <div id="chart-wrapper">
-      <svg id="ternary" width="350" height="350"></svg>
+      <svg id="ternary-q1" width="350" height="350"></svg>
     </div>
-
-    <footer>Interactive Survey © 2025</footer>
   </div>
 
+  <!-- Question 2 -->
+  <div class="survey-card" id="q2-card">
+    <h2>Question 2: Which factor matters most to you?</h2>
+    <div class="buttons">
+      <button onclick="vote('q2', 'A')">Factor A</button>
+      <button onclick="vote('q2', 'B')">Factor B</button>
+      <button onclick="vote('q2', 'C')">Factor C</button>
+    </div>
+    <div id="results-q2"></div>
+    <div id="chart-wrapper">
+      <svg id="ternary-q2" width="350" height="350"></svg>
+    </div>
+  </div>
+
+  <footer>Interactive Survey © 2025</footer>
+
   <script>
-    // ⚙️ Change this to your actual backend URL
     const API_BASE = "https://digital-society-survey.onrender.com";
 
-    async function vote(option) {
+    async function vote(question, choice) {
       await fetch(`${API_BASE}/vote`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ choice: option }),
+        body: JSON.stringify({ question, choice }),
       });
       loadResults();
     }
@@ -126,17 +128,19 @@
     async function loadResults() {
       const response = await fetch(`${API_BASE}/results`);
       const data = await response.json();
-      updateResults(data);
-      drawTernary(data);
+      updateResults("q1", data.q1);
+      updateResults("q2", data.q2);
+      drawTernary("q1", data.q1);
+      drawTernary("q2", data.q2);
     }
 
-    function updateResults(data) {
-      document.getElementById("results").innerText =
+    function updateResults(qid, data) {
+      document.getElementById(`results-${qid}`).innerText =
         `A: ${data.A} | B: ${data.B} | C: ${data.C}`;
     }
 
-    function drawTernary(data) {
-      const svg = d3.select("#ternary");
+    function drawTernary(qid, data) {
+      const svg = d3.select(`#ternary-${qid}`);
       svg.selectAll("*").remove();
 
       const width = +svg.attr("width");
@@ -172,24 +176,17 @@
         .duration(600)
         .attr("opacity", 1);
 
-      svg.append("text")
-        .attr("x", points[0][0])
-        .attr("y", points[0][1] - 10)
-        .attr("text-anchor", "middle")
-        .attr("font-weight", "600")
-        .text("A");
-      svg.append("text")
-        .attr("x", points[1][0] - 10)
-        .attr("y", points[1][1] + 15)
-        .attr("text-anchor", "end")
-        .attr("font-weight", "600")
-        .text("B");
-      svg.append("text")
-        .attr("x", points[2][0] + 10)
-        .attr("y", points[2][1] + 15)
-        .attr("text-anchor", "start")
-        .attr("font-weight", "600")
-        .text("C");
+      const labels = ["A", "B", "C"];
+      const labelOffsets = [[0, -10], [-10, 20], [10, 20]];
+
+      points.forEach((p, i) => {
+        svg.append("text")
+          .attr("x", p[0] + labelOffsets[i][0])
+          .attr("y", p[1] + labelOffsets[i][1])
+          .attr("text-anchor", "middle")
+          .attr("font-weight", "600")
+          .text(labels[i]);
+      });
     }
 
     loadResults();
