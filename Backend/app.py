@@ -19,12 +19,12 @@ def init_csv():
             writer.writerow([
                 'timestamp',
                 'session_id',
-                'q1_kosten',
-                'q1_qualitaet',
-                'q1_zeit',
-                'q2_innovation',
-                'q2_stabilitaet',
-                'q2_effizienz'
+                'q1_equality',
+                'q1_technological_progress',
+                'q1_sustainability',
+                'q2_equality',
+                'q2_technological_progress',
+                'q2_sustainability'
             ])
 
 @app.route('/submit', methods=['POST'])
