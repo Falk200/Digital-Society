@@ -13,7 +13,6 @@ CSV_FILE = 'survey_responses.csv'
 
 # CSV-Datei initialisieren, falls sie nicht existiert
 def init_csv():
-    if not os.path.exists(CSV_FILE):
         with open(CSV_FILE, 'w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
             writer.writerow([
