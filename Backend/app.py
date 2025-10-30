@@ -103,6 +103,27 @@ def export_data():
             'success': False,
             'error': str(e)
         }), 500
+            
+@app.route('/reset', methods=['POST'])
+def reset_data():
+    """Endpunkt zum Zurücksetzen der CSV-Datei"""
+    try:
+        if os.path.exists(CSV_FILE):
+            os.remove(CSV_FILE)
+        
+        init_csv()
+        
+        return jsonify({
+            'success': True,
+            'message': 'CSV-Datei wurde zurückgesetzt'
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 
 @app.route('/health', methods=['GET'])
 def health_check():
@@ -119,5 +140,6 @@ if __name__ == '__main__':
     print("  POST /submit   - Antworten einreichen")
     print("  GET  /export   - Alle Daten abrufen")
     print("  GET  /health   - Server Status")
+    print("  POST /reset    - CSV-Datei zurücksetzen")
     
     app.run(debug=True, port=5000)
