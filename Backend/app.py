@@ -43,7 +43,7 @@ def submit_response():
         q2 = data.get('question2', {})
         
         # Debug: Daten ausgeben
-        print(f"Received data: {data}")
+        print(f"Received data:")
         print(f"Question 1: {q1}")
         print(f"Question 2: {q2}")
         
@@ -60,12 +60,12 @@ def submit_response():
             writer.writerow([
                 timestamp,
                 session_id,
-                get_value(q1, ['Kosten', 'kosten']),
-                get_value(q1, ['Qualität', 'qualität', 'Qualitat', 'qualitat']),
-                get_value(q1, ['Zeit', 'zeit']),
-                get_value(q2, ['Innovation', 'innovation']),
-                get_value(q2, ['Stabilität', 'stabilität', 'Stabilitat', 'stabilitat']),
-                get_value(q2, ['Effizienz', 'effizienz'])
+                get_value(q1, ['Equality', 'equality']),
+                get_value(q1, ['Technological Progress', 'technological progress']),
+                get_value(q1, ['Sustainability', 'sustainability']),
+                get_value(q2, ['Equality', 'equality']),
+                get_value(q2, ['Technological Progress', 'technological progress']),
+                get_value(q2, ['Sustainability', 'sustainability'])
             ])
         
         return jsonify({
