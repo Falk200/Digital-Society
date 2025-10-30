@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import csv
 import os
@@ -70,7 +70,7 @@ def submit_response():
 
 @app.route('/export', methods=['GET'])
 def export_data():
-    """Endpunkt zum Abrufen aller gespeicherten Daten"""
+    """Endpunkt zum Herunterladen der CSV-Datei"""
     try:
         if not os.path.exists(CSV_FILE):
             return jsonify({
@@ -78,15 +78,14 @@ def export_data():
                 'error': 'Keine Daten vorhanden'
             }), 404
         
-        with open(CSV_FILE, 'r', encoding='utf-8') as f:
-            reader = csv.DictReader(f)
-            data = list(reader)
-        
-        return jsonify({
-            'success': True,
-            'count': len(data),
-            'data': data
-        }), 200
+        # CSV-Datei direkt senden
+        from flask import send_file
+        return send_file(
+            CSV_FILE,
+            mimetype='text/csv',
+            as_attachment=True,
+            download_name=f'survey_responses_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+        )
         
     except Exception as e:
         return jsonify({
