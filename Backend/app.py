@@ -42,18 +42,30 @@ def submit_response():
         q1 = data.get('question1', {})
         q2 = data.get('question2', {})
         
+        # Debug: Daten ausgeben
+        print(f"Received data: {data}")
+        print(f"Question 1: {q1}")
+        print(f"Question 2: {q2}")
+        
+        # Alle möglichen Schlüsselvarianten prüfen
+        def get_value(dict_obj, possible_keys):
+            for key in possible_keys:
+                if key in dict_obj:
+                    return dict_obj[key]
+            return 0
+        
         # In CSV schreiben
         with open(CSV_FILE, 'a', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
             writer.writerow([
                 timestamp,
                 session_id,
-                q1.get('Kosten', 0),
-                q1.get('Qualität', 0),
-                q1.get('Zeit', 0),
-                q2.get('Innovation', 0),
-                q2.get('Stabilität', 0),
-                q2.get('Effizienz', 0)
+                get_value(q1, ['Kosten', 'kosten']),
+                get_value(q1, ['Qualität', 'qualität', 'Qualitat', 'qualitat']),
+                get_value(q1, ['Zeit', 'zeit']),
+                get_value(q2, ['Innovation', 'innovation']),
+                get_value(q2, ['Stabilität', 'stabilität', 'Stabilitat', 'stabilitat']),
+                get_value(q2, ['Effizienz', 'effizienz'])
             ])
         
         return jsonify({
